@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>Flappy Bird - Updated</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
+            /* यह एक लाइन माउस से टेक्स्ट सेलेक्ट होने और कॉपी का ऑप्शन आने से रोकेगी */
+            user-select: none; 
+            background: skyblue;
+        }
+        #game { 
+            width: 100vw; 
+            height: 100vh; 
+            position: relative; 
+        }
+        /* आपकी पीली चिड़िया */
+        #bird { 
+            width: 40px; 
+            height: 40px; 
+            background: yellow; 
+            position: absolute; 
+            top: 300px; 
+            left: 150px; 
+            border-radius: 50%; 
+            border: 2px solid black;
+            z-index: 5;
+        }
+        /* हरी डंडियां */
+        .pipe { 
+            width: 70px; 
+            position: absolute; 
+            background: green;
+            border: 2px solid darkgreen;
+        }
+        /* स्कोर बोर्ड का डिज़ाइन */
+        #scoreBoard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 30px;
+            font-weight: bold;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+      <div id="scoreBoard">
+          स्कोर: <span id="score">0</span> <br>
+          हाई स्कोर: <span id="highScore">0</span>
+      </div>
+      <div id="bird"></div>
+    </div>
+    
+    <script>
+       let bird = document.getElementById('bird');
+       let gameDiv = document.getElementById('game');
+       let scoreText = document.getElementById('score');
+       let highScoreText = document.getElementById('highScore');
+
+       let birdY = 300;
+       let gravity = 3; 
+       let score = 0;
+       
+       // हाई स्कोर को आपके लैपटॉप (ब्राउज़र) में हमेशा के लिए सेव रखने का कोड
+       let highScore = localStorage.getItem("flappyHighScore") || 0;
+       highScoreText.innerText = highScore;
+
+       let isGameOver = false;
+       let pipes = []; // इसमें बहुत सारी डंडियां एक साथ आ सकेंगी
+
+       function jump() {
+           if(!isGameOver) birdY -= 60; 
+       }
+
+       document.addEventListener("keydown", function(e) {
+           if(e.code === "Space") jump();
+       });
+       document.addEventListener("mousedown", jump);
+
+       // हर 1.5 सेकंड में लगातार नई डंडी बनाने का कोड (अब डंडी कम नहीं पड़ेगी)
+       setInterval(function() {
+           if(isGameOver) return;
+           
+           let gap = 200; // ऊपर और नीचे की डंडी के बीच की जगह
+           let pipeX = window.innerWidth;
+           let pipeTopHeight = Math.floor(Math.random() * (window.innerHeight - gap - 100)) + 50;
+
+           let topPipe = document.createElement("div");
+           topPipe.className = "pipe";
+           topPipe.style.top = "0px";
+           topPipe.style.left = pipeX + "px";
+           topPipe.style.height = pipeTopHeight + "px";
+           gameDiv.appendChild(topPipe);
+
+           let bottomPipe = document.createElement("div");
+           bottomPipe.className = "pipe";
+           bottomPipe.style.bottom = "0px";
+           bottomPipe.style.left = pipeX + "px";
+           bottomPipe.style.height = (window.innerHeight - pipeTopHeight - gap) + "px";
+           gameDiv.appendChild(bottomPipe);
+
+           pipes.push({ top: topPipe, bottom: bottomPipe, x: pipeX, passed: false });
+       }, 1500); 
+
+       // गेम चलाने वाला मुख्य कोड
+       let gameLoop = setInterval(function() {
+           if(isGameOver) return;
+
+           birdY += gravity;
+           bird.style.top = birdY + 'px';
+
+           for(let i = 0; i < pipes.length; i++) {
+               let p = pipes[i];
+               p.x -= 6; 
+               p.top.style.left = p.x + 'px';
+               p.bottom.style.left = p.x + 'px';
+
+               if (p.x < 150 && !p.passed) {
+                   score++;
+                   scoreText.innerText = score;
+                   p.passed = true;
+               }
+
+               let birdRect = bird.getBoundingClientRect();
+               let topRect = p.top.getBoundingClientRect();
+               let bottomRect = p.bottom.getBoundingClientRect();
+
+               if (
+                   birdRect.bottom > window.innerHeight || 
+                   birdRect.top < 0 || 
+                   (birdRect.right - 10 > topRect.left && birdRect.left + 10 < topRect.right && 
+                   (birdRect.top + 10 < topRect.bottom || birdRect.bottom - 10 > bottomRect.top))
+               ) {
+                   gameOver();
+               }
+           }
+       }, 30);
+
+       function gameOver() {
+           isGameOver = true;
+           // नया हाई स्कोर बनने पर उसे सेव करना
+           if(score > highScore) {
+               highScore = score;
+               localStorage.setItem("flappyHighScore", highScore);
+           }
+           alert("गेम ओवर! आपका स्कोर: " + score + "\nहाई स्कोर: " + highScore);
+           // OK दबाते ही गेम तुरंत वहीं से रिफ्रेश हो जाएगा
+           location.reload(); 
+       }
+    </script>
+</body>
+</html>
